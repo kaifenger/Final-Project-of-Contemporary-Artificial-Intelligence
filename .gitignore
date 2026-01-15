@@ -1,0 +1,68 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# PyTorch
+*.pth
+*.pt
+
+# Logs
+*.log
+logs/
+experiments/logs/
+
+# Data (不上传原始数据)
+# data/
+# train.txt
+# test_without_label.txt
+
+# Results
+results/predictions/*.csv
+results/predictions/*.txt
+results/visualizations/*.png
+results/visualizations/*.jpg
+
+# Temporary files
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Model checkpoints (太大不上传)
+checkpoints/*.pth
+checkpoints/*.pt
+
+# TensorBoard
+runs/
