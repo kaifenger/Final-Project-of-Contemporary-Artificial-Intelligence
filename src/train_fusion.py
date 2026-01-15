@@ -28,7 +28,12 @@ def train_epoch(model, train_loader, criterion, optimizer, device, epoch, writer
     
     pbar = tqdm(train_loader, desc=f'Epoch {epoch}')
     
-    for batch_idx, (text, images, labels) in enumerate(pbar):
+    for batch_idx, batch in enumerate(pbar):
+        # 从字典中提取数据
+        text = batch['text']
+        images = batch['image']
+        labels = batch['label']
+        
         # 移动到设备
         images = images.to(device)
         labels = labels.to(device)
@@ -75,7 +80,12 @@ def validate(model, val_loader, criterion, device, mode='both'):
     all_labels = []
     
     with torch.no_grad():
-        for text, images, labels in tqdm(val_loader, desc='Validating'):
+        for batch in tqdm(val_loader, desc='Validating'):
+            # 从字典中提取数据
+            text = batch['text']
+            images = batch['image']
+            labels = batch['label']
+            
             images = images.to(device)
             labels = labels.to(device)
             text_input = {k: v.to(device) for k, v in text.items()}
