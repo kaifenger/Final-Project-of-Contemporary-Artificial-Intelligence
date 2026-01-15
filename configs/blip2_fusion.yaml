@@ -8,9 +8,9 @@ dropout: 0.3
 freeze_blip: true  # 冻结BLIP-2参数
 
 # 数据配置
-data_dir: '../data'
-train_file: '../data_split/train_split.csv'
-val_file: '../data_split/val_split.csv'
+data_dir: 'data'
+train_file: 'data_split/train_split.csv'
+val_file: 'data_split/val_split.csv'
 max_text_length: 128
 image_size: 224
 augment: false  # 控制变量:关闭数据增强
@@ -24,5 +24,5 @@ weight_decay: 0.01
 seed: 42
 
 # 其他配置
-checkpoint_dir: '../checkpoints/blip2_fusion'
-log_dir: '../experiments/logs/blip2_fusion'
+checkpoint_dir: 'checkpoints/blip2_fusion'
+log_dir: 'experiments/logs/blip2_fusion'
