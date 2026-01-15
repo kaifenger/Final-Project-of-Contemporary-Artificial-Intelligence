@@ -71,7 +71,12 @@ def evaluate_model(model, val_loader, device, mode='both'):
     all_probs = []
     
     with torch.no_grad():
-        for text, images, labels in tqdm(val_loader, desc=f'Evaluating ({mode})'):
+        for batch in tqdm(val_loader, desc=f'Evaluating ({mode})'):
+            # 从字典中提取数据
+            text = batch['text']
+            images = batch['image']
+            labels = batch['label']
+            
             images = images.to(device)
             labels = labels.to(device)
             text_input = {k: v.to(device) for k, v in text.items()}
