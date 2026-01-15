@@ -13,7 +13,7 @@ train_file: '../data_split/train_split.csv'
 val_file: '../data_split/val_split.csv'
 max_text_length: 128
 image_size: 224
-augment: true
+augment: false  # 控制变量:关闭数据增强
 
 # 训练配置 (控制变量)
 batch_size: 32
