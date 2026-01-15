@@ -137,13 +137,14 @@ def main():
         max_text_length=config['max_text_length']
     )
     
-    # 创建数据加载器
+    # 创建数据加载器 (CPU训练时关闭pin_memory避免警告)
+    use_pin_memory = device.type == 'cuda'
     train_loader = DataLoader(
         train_dataset,
         batch_size=config['batch_size'],
         shuffle=True,
         num_workers=config['num_workers'],
-        pin_memory=True
+        pin_memory=use_pin_memory
     )
     
     val_loader = DataLoader(
@@ -151,7 +152,7 @@ def main():
         batch_size=config['batch_size'],
         shuffle=False,
         num_workers=config['num_workers'],
-        pin_memory=True
+        pin_memory=use_pin_memory
     )
     
     print(f"训练集样本数: {len(train_dataset)}")
