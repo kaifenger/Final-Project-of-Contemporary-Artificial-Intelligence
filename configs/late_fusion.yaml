@@ -1,0 +1,28 @@
+# Late Fusion配置文件
+
+# 模型配置
+fusion_type: 'late'
+text_model_path: '../checkpoints/text_only/best_model.pth'  # 需要先训练v0.2
+image_model_path: '../checkpoints/image_only/best_model.pth'
+num_classes: 3
+learnable_weight: true  # 可学习的融合权重
+
+# 数据配置
+data_dir: '../data'
+train_file: '../data_split/train_split.csv'
+val_file: '../data_split/val_split.csv'
+max_text_length: 128
+image_size: 224
+augment: true
+
+# 训练配置 (控制变量)
+batch_size: 32
+num_workers: 4
+epochs: 15
+learning_rate: 5.0e-5  # 统一学习率
+weight_decay: 0.01
+seed: 42
+
+# 其他配置
+checkpoint_dir: '../checkpoints/late_fusion'
+log_dir: '../experiments/logs/late_fusion'

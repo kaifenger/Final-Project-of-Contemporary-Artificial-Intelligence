@@ -1,0 +1,28 @@
+# BLIP-2 Fusion配置文件
+
+# 模型配置
+fusion_type: 'blip2'
+blip2_model: 'Salesforce/blip2-opt-2.7b'
+num_classes: 3
+dropout: 0.3
+freeze_blip: true  # 冻结BLIP-2参数
+
+# 数据配置
+data_dir: '../data'
+train_file: '../data_split/train_split.csv'
+val_file: '../data_split/val_split.csv'
+max_text_length: 128
+image_size: 224
+augment: true
+
+# 训练配置 (控制变量)
+batch_size: 32
+num_workers: 4
+epochs: 15
+learning_rate: 5.0e-5  # 统一学习率
+weight_decay: 0.01
+seed: 42
+
+# 其他配置
+checkpoint_dir: '../checkpoints/blip2_fusion'
+log_dir: '../experiments/logs/blip2_fusion'
