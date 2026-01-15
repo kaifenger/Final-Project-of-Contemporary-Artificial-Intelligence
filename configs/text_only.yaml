@@ -2,7 +2,7 @@
 
 # 模型配置
 model_type: 'text_only'
-text_model: 'bert-base-uncased'  # 可选: roberta-base
+text_model: 'roberta-base'  # RoBERTa性能优于BERT (可选: bert-base-uncased)
 num_classes: 3
 dropout: 0.1
 
@@ -18,7 +18,7 @@ augment: false  # 文本模型不需要图像增强
 batch_size: 32
 num_workers: 4
 epochs: 15
-learning_rate: 2.0e-5
+learning_rate: 1.0e-5  # RoBERTa对学习率更敏感,降低以获得更稳定训练
 weight_decay: 0.01
 seed: 42
 

@@ -2,7 +2,7 @@
 
 # 模型配置
 model_type: 'image_only'
-image_model: 'resnet50'  # 可选: resnet101, vit_b_16
+image_model: 'efficientnet_b4'  # EfficientNet-B4性能优于ResNet50 (可选: resnet50, resnet101, vit_b_16)
 num_classes: 3
 dropout: 0.1
 
@@ -18,7 +18,7 @@ augment: true  # 图像数据增强
 batch_size: 32
 num_workers: 4
 epochs: 15
-learning_rate: 1.0e-4
+learning_rate: 5.0e-5  # EfficientNet收敛更快,降低学习率以获得更好效果
 weight_decay: 0.01
 seed: 42
 

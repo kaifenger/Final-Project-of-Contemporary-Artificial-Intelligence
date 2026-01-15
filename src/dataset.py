@@ -2,6 +2,7 @@
 # 用于加载文本和图像数据
 
 import os
+import re
 import torch
 from torch.utils.data import Dataset
 from PIL import Image
@@ -117,28 +118,78 @@ class MultimodalDataset(Dataset):
 
 
 class TextPreprocessor:
-    # 文本预处理类
+    # 文本预处理类 - 针对社交媒体文本的深度清洗
     
-    def __init__(self, max_length: int = 128):
+    def __init__(self, max_length: int = 128, remove_emoji: bool = False):
         # 初始化文本预处理器
         # Args:
         #   max_length: 最大文本长度
+        #   remove_emoji: 是否移除表情符号(False保留emoji信息)
         self.max_length = max_length
+        self.remove_emoji = remove_emoji
+        
+        # 编译正则表达式以提高性能
+        self.url_pattern = re.compile(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
+        self.email_pattern = re.compile(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b')
+        self.mention_pattern = re.compile(r'@\w+')
+        self.hashtag_pattern = re.compile(r'#\w+')
+        self.html_pattern = re.compile(r'<[^>]+>')
+        self.emoji_pattern = re.compile(
+            "["
+            "\U0001F600-\U0001F64F"  # emoticons
+            "\U0001F300-\U0001F5FF"  # symbols & pictographs
+            "\U0001F680-\U0001F6FF"  # transport & map symbols
+            "\U0001F1E0-\U0001F1FF"  # flags
+            "\U00002702-\U000027B0"
+            "\U000024C2-\U0001F251"
+            "]+", flags=re.UNICODE
+        )
     
     def __call__(self, text: str) -> str:
-        # 基础文本清洗
+        # 深度文本清洗
         # Args:
         #   text: 原始文本
         # Returns:
         #   清洗后的文本
-        # 去除多余空白
+        if not isinstance(text, str):
+            return ""
+        
+        # 1. 移除HTML标签
+        text = self.html_pattern.sub(' ', text)
+        
+        # 2. 处理URL - 替换为[URL]标记(保留URL信息但避免噪声)
+        text = self.url_pattern.sub(' [URL] ', text)
+        
+        # 3. 处理邮箱 - 替换为[EMAIL]标记
+        text = self.email_pattern.sub(' [EMAIL] ', text)
+        
+        # 4. 处理@mentions - 保留但标准化为[USER]
+        text = self.mention_pattern.sub(' [USER] ', text)
+        
+        # 5. 处理hashtags - 保留文字内容(hashtag可能包含情感信息)
+        text = self.hashtag_pattern.sub(lambda m: ' ' + m.group()[1:] + ' ', text)
+        
+        # 6. 处理表情符号
+        if self.remove_emoji:
+            text = self.emoji_pattern.sub(' ', text)
+        else:
+            # 保留emoji但添加空格分隔
+            text = self.emoji_pattern.sub(lambda m: ' ' + m.group() + ' ', text)
+        
+        # 7. 移除多余的标点和特殊字符(保留基本标点)
+        text = re.sub(r'[^\w\s.,!?;:\'\"-]', ' ', text)
+        
+        # 8. 统一多个标点为单个
+        text = re.sub(r'([.,!?;:])\1+', r'\1', text)
+        
+        # 9. 去除多余空白
         text = ' '.join(text.split())
         
-        # 限制长度
+        # 10. 限制长度
         if len(text) > self.max_length * 5:  # 粗略估计字符数
             text = text[:self.max_length * 5]
         
-        return text
+        return text.strip()
 
 
 def get_image_transforms(image_size: int = 224, augment: bool = False):
