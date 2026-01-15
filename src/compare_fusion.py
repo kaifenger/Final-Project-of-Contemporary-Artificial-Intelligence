@@ -137,12 +137,17 @@ def main():
     with open('../configs/early_fusion.yaml', 'r', encoding='utf-8') as f:
         base_config = yaml.safe_load(f)
     
+    # 创建tokenizer
+    from transformers import AutoTokenizer
+    tokenizer = AutoTokenizer.from_pretrained('roberta-base')
+    
     text_preprocessor = TextPreprocessor(max_length=base_config['max_text_length'])
     val_transform = get_image_transforms(base_config['image_size'], augment=False)
     
     val_dataset = MultimodalDataset(
         csv_file=base_config['val_file'],
         data_dir=base_config['data_dir'],
+        tokenizer=tokenizer,
         text_transform=text_preprocessor,
         image_transform=val_transform,
         max_text_length=base_config['max_text_length']

@@ -126,6 +126,10 @@ def main():
     device = get_device()
     print(f"使用设备: {device}")
     
+    # 创建tokenizer
+    from transformers import AutoTokenizer
+    tokenizer = AutoTokenizer.from_pretrained('roberta-base')
+    
     # 创建数据集
     text_preprocessor = TextPreprocessor(max_length=config['max_text_length'])
     train_transform = get_image_transforms(config['image_size'], augment=config['augment'])
@@ -134,6 +138,7 @@ def main():
     train_dataset = MultimodalDataset(
         csv_file=config['train_file'],
         data_dir=config['data_dir'],
+        tokenizer=tokenizer,
         text_transform=text_preprocessor,
         image_transform=train_transform,
         max_text_length=config['max_text_length']
@@ -142,6 +147,7 @@ def main():
     val_dataset = MultimodalDataset(
         csv_file=config['val_file'],
         data_dir=config['data_dir'],
+        tokenizer=tokenizer,
         text_transform=text_preprocessor,
         image_transform=val_transform,
         max_text_length=config['max_text_length']

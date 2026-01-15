@@ -16,6 +16,7 @@ class MultimodalDataset(Dataset):
     def __init__(self, 
                  csv_file: str,
                  data_dir: str,
+                 tokenizer=None,
                  text_transform=None,
                  image_transform=None,
                  max_text_length: int = 128):
@@ -23,11 +24,13 @@ class MultimodalDataset(Dataset):
         # Args:
         #   csv_file: CSV标签文件路径
         #   data_dir: 数据文件夹路径
-        #   text_transform: 文本预处理函数
+        #   tokenizer: 文本tokenizer(用于tokenize)
+        #   text_transform: 文本预处理函数(用于清洗)
         #   image_transform: 图像预处理函数
         #   max_text_length: 最大文本长度
         self.data = pd.read_csv(csv_file)
         self.data_dir = data_dir
+        self.tokenizer = tokenizer
         self.text_transform = text_transform
         self.image_transform = image_transform
         self.max_text_length = max_text_length
@@ -68,7 +71,19 @@ class MultimodalDataset(Dataset):
         
         # 应用预处理
         if self.text_transform:
-            text = self.text_transform(text)
+            text = self.text_transform(text)  # 清洗文本
+        
+        # Tokenize文本
+        if self.tokenizer:
+            text = self.tokenizer(
+                text,
+                max_length=self.max_text_length,
+                padding='max_length',
+                truncation=True,
+                return_tensors='pt'
+            )
+            # 移除batch维度
+            text = {k: v.squeeze(0) for k, v in text.items()}
         
         if self.image_transform:
             image = self.image_transform(image)
