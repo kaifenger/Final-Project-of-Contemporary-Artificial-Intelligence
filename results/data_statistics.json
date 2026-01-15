@@ -1,0 +1,17 @@
+{
+    "train_size": 4000,
+    "test_size": 511,
+    "total_size": 4511,
+    "label_distribution": {
+        "positive": 2388,
+        "negative": 1193,
+        "neutral": 419
+    },
+    "label_percentage": {
+        "positive": "59.70%",
+        "negative": "29.83%",
+        "neutral": "10.47%"
+    },
+    "missing_text_files": [],
+    "missing_image_files": []
+}

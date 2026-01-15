@@ -1,0 +1,16 @@
+{
+    "seed": 42,
+    "train_size": 3200,
+    "val_size": 800,
+    "val_ratio": 0.2,
+    "train_label_dist": {
+        "positive": 1905,
+        "negative": 959,
+        "neutral": 336
+    },
+    "val_label_dist": {
+        "positive": 483,
+        "negative": 234,
+        "neutral": 83
+    }
+}
