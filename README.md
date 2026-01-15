@@ -73,19 +73,29 @@ python src/data_loader.py
 
 ### Training
 ```bash
-# Train text-only baseline
+# Using the interactive script (Recommended)
+.\run_v02.ps1
+
+# Or train directly
+# Train text-only baseline (v0.2)
 python src/train.py --config configs/text_only.yaml
 
-# Train image-only baseline
+# Train image-only baseline (v0.2)
 python src/train.py --config configs/image_only.yaml
-
-# Train multimodal model
-python src/train.py --config configs/multimodal.yaml
 ```
 
 ### Evaluation
 ```bash
-python src/evaluate.py --model_path checkpoints/best_model.pth
+# Evaluate text model
+python src/evaluate.py --config configs/text_only.yaml --checkpoint checkpoints/text_only/best_model.pth
+
+# Evaluate image model
+python src/evaluate.py --config configs/image_only.yaml --checkpoint checkpoints/image_only/best_model.pth
+```
+
+### View TensorBoard
+```bash
+tensorboard --logdir experiments/logs
 ```
 
 ### Prediction
@@ -125,6 +135,7 @@ python src/predict.py --model_path checkpoints/best_model.pth --output results/p
 
 ## Version History
 - **v0.1:** Project initialization and data processing
+- **v0.2:** Single-modal baseline models (text-only and image-only)
 - [More versions to be added]
 
 ---

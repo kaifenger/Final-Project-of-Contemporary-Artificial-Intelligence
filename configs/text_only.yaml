@@ -1,0 +1,28 @@
+# 纯文本模型配置
+
+# 模型配置
+model_type: 'text_only'
+text_model: 'bert-base-uncased'  # 可选: roberta-base
+num_classes: 3
+dropout: 0.1
+
+# 数据配置
+data_dir: '../data'
+train_file: '../data_split/train_split.csv'
+val_file: '../data_split/val_split.csv'
+max_text_length: 128
+image_size: 224
+augment: false  # 文本模型不需要图像增强
+
+# 训练配置
+batch_size: 32
+num_workers: 4
+epochs: 15
+learning_rate: 2.0e-5
+weight_decay: 0.01
+seed: 42
+
+# 其他配置
+checkpoint_dir: '../checkpoints/text_only'
+log_dir: '../experiments/logs/text_only'
+pretrained: true

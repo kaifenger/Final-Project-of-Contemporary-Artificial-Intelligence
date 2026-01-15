@@ -1,0 +1,28 @@
+# 纯图像模型配置
+
+# 模型配置
+model_type: 'image_only'
+image_model: 'resnet50'  # 可选: resnet101, vit_b_16
+num_classes: 3
+dropout: 0.1
+
+# 数据配置
+data_dir: '../data'
+train_file: '../data_split/train_split.csv'
+val_file: '../data_split/val_split.csv'
+max_text_length: 128  # 占位，图像模型不使用
+image_size: 224
+augment: true  # 图像数据增强
+
+# 训练配置
+batch_size: 32
+num_workers: 4
+epochs: 15
+learning_rate: 1.0e-4
+weight_decay: 0.01
+seed: 42
+
+# 其他配置
+checkpoint_dir: '../checkpoints/image_only'
+log_dir: '../experiments/logs/image_only'
+pretrained: true
