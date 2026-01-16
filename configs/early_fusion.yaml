@@ -17,7 +17,7 @@ augment: false  # 控制变量:关闭数据增强
 
 # 训练配置 (控制变量)
 batch_size: 32
-num_workers: 4
+num_workers: 0  # 单进程模式,避免VPN冲突
 epochs: 15
 learning_rate: 5.0e-5  # 统一学习率
 weight_decay: 0.01
