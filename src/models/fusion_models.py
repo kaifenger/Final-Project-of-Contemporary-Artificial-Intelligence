@@ -12,7 +12,7 @@ class EarlyFusionModel(nn.Module):
     # 早期融合：特征级拼接
     
     def __init__(self, text_model='roberta-base', image_model='efficientnet_b4', 
-                 num_classes=3, dropout=0.3, pretrained=True):
+                 num_classes=3, dropout=0.3, pretrained=True, freeze_backbone=True):
         # 初始化早期融合模型
         # Args:
         #   text_model: 文本模型名称
@@ -20,6 +20,7 @@ class EarlyFusionModel(nn.Module):
         #   num_classes: 分类数
         #   dropout: dropout比率
         #   pretrained: 是否使用预训练权重
+        #   freeze_backbone: 是否冻结预训练backbone
         super(EarlyFusionModel, self).__init__()
         
         # 文本编码器
@@ -40,6 +41,13 @@ class EarlyFusionModel(nn.Module):
             image_feat_dim = 2048
         else:
             image_feat_dim = 1792
+        
+        # 冻结预训练模型参数(小数据集标准做法)
+        if freeze_backbone:
+            for param in self.text_encoder.parameters():
+                param.requires_grad = False
+            for param in self.image_encoder.parameters():
+                param.requires_grad = False
         
         # 融合层（特征拼接后的MLP）
         self.fusion = nn.Sequential(
@@ -116,22 +124,26 @@ class EarlyFusionModel(nn.Module):
 class LateFusionModel(nn.Module):
     # 晚期融合：决策级加权
     
-    def __init__(self, text_model_path, image_model_path, num_classes=3, learnable_weight=True):
+    def __init__(self, text_model_path, image_model_path, num_classes=3, learnable_weight=True, freeze_backbone=True):
         # 初始化晚期融合模型
         # Args:
         #   text_model_path: 已训练的文本模型路径
         #   image_model_path: 已训练的图像模型路径
         #   num_classes: 分类数
         #   learnable_weight: 是否使用可学习权重
+        #   freeze_backbone: 是否冻结预训练backbone
         super(LateFusionModel, self).__init__()
         
         # 加载已训练的单模态模型
         self.text_classifier = self._load_model(text_model_path, 'text')
         self.image_classifier = self._load_model(image_model_path, 'image')
         
-        # 冻结单模态模型（可选）
-        # self.text_classifier.requires_grad_(False)
-        # self.image_classifier.requires_grad_(False)
+        # 冻结单模态模型
+        if freeze_backbone:
+            for param in self.text_classifier.parameters():
+                param.requires_grad = False
+            for param in self.image_classifier.parameters():
+                param.requires_grad = False
         
         # 融合权重
         if learnable_weight:

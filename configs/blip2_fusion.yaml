@@ -5,7 +5,7 @@ fusion_type: 'blip2'
 blip2_model: 'Salesforce/blip2-opt-2.7b'
 num_classes: 3
 dropout: 0.3
-freeze_blip: true  # 冻结BLIP-2参数
+freeze_blip: true  # 冻结BLIP-2参数(已有)
 
 # 数据配置
 data_dir: 'data'

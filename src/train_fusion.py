@@ -1,10 +1,22 @@
 # 多模态融合模型训练脚本
 # 支持4种融合方法：Early Fusion, Late Fusion, CLIP-based, BLIP-2
 
+print("=" * 60)
+print("启动训练脚本...")
+print("=" * 60)
+
 import os
 import sys
+
+# 设置环境变量避免多线程冲突
+os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['MKL_NUM_THREADS'] = '1'
+os.environ['NUMEXPR_NUM_THREADS'] = '1'
+
 import yaml
+print("正在导入PyTorch...")
 import torch
+torch.set_num_threads(1)  # 限制线程数
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
@@ -13,11 +25,14 @@ import argparse
 from tqdm import tqdm
 import numpy as np
 
+print("正在导入自定义模块...")
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from models.fusion_models import EarlyFusionModel, LateFusionModel, CLIPFusionModel, BLIP2FusionModel
 from dataset import MultimodalDataset, TextPreprocessor, get_image_transforms
 from utils import set_seed, get_device, AverageMeter
+print("导入完成！")
+
 
 
 def train_epoch(model, train_loader, criterion, optimizer, device, epoch, writer, config):
@@ -66,6 +81,11 @@ def train_epoch(model, train_loader, criterion, optimizer, device, epoch, writer
         global_step = epoch * len(train_loader) + batch_idx
         writer.add_scalar('Train/Loss', loss.item(), global_step)
         writer.add_scalar('Train/Acc', acc, global_step)
+        
+        # 释放中间变量内存
+        del text_input, images, labels, logits, loss
+        if batch_idx % 10 == 0:  # 每10个batch清理一次
+            torch.cuda.empty_cache() if torch.cuda.is_available() else None
     
     return losses.avg, accuracies.avg
 
@@ -186,14 +206,16 @@ def main():
             text_model=config['text_model'],
             image_model=config['image_model'],
             num_classes=config['num_classes'],
-            dropout=config['dropout']
+            dropout=config['dropout'],
+            freeze_backbone=config.get('freeze_backbone', True)
         )
     elif fusion_type == 'late':
         model = LateFusionModel(
-            text_model_path=config.get('text_model_path', 'none'),
-            image_model_path=config.get('image_model_path', 'none'),
+            text_model_path=config['text_model_path'],
+            image_model_path=config['image_model_path'],
             num_classes=config['num_classes'],
-            learnable_weight=config.get('learnable_weight', True)
+            learnable_weight=config.get('learnable_weight', True),
+            freeze_backbone=config.get('freeze_backbone', True)
         )
     elif fusion_type == 'clip':
         model = CLIPFusionModel(
@@ -217,8 +239,10 @@ def main():
     # 打印模型参数量
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    frozen_params = total_params - trainable_params
     print(f"总参数量: {total_params:,}")
-    print(f"可训练参数量: {trainable_params:,}")
+    print(f"可训练参数量: {trainable_params:,} ({100*trainable_params/total_params:.1f}%)")
+    print(f"冻结参数量: {frozen_params:,} ({100*frozen_params/total_params:.1f}%)")
     
     # 损失函数和优化器
     criterion = nn.CrossEntropyLoss()
@@ -260,6 +284,11 @@ def main():
         val_loss, val_acc, _, _ = validate(model, val_loader, criterion, device, mode='both')
         
         print(f"验证 - Loss: {val_loss:.4f}, Acc: {val_acc:.4f}")
+        
+        # 垃圾回收
+        import gc
+        gc.collect()
+        torch.cuda.empty_cache() if torch.cuda.is_available() else None
         
         # TensorBoard记录
         writer.add_scalar('Epoch/Train_Loss', train_loss, epoch)

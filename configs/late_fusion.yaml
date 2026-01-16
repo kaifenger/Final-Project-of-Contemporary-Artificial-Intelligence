@@ -6,6 +6,7 @@ text_model_path: 'checkpoints/text_only/best_model.pth'  # 需要先训练v0.2
 image_model_path: 'checkpoints/image_only/best_model.pth'
 num_classes: 3
 learnable_weight: true  # 可学习的融合权重
+freeze_backbone: true  # 冻结单模态模型
 
 # 数据配置
 data_dir: 'data'

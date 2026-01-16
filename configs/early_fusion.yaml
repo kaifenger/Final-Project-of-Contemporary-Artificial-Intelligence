@@ -6,6 +6,7 @@ text_model: 'roberta-base'
 image_model: 'efficientnet_b4'
 num_classes: 3
 dropout: 0.3
+freeze_backbone: true  # 冻结预训练模型,大幅提速
 
 # 数据配置
 data_dir: 'data'
