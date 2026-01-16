@@ -115,6 +115,7 @@ def main():
     parser.add_argument('--resume', type=str, default=None, help='恢复训练的checkpoint路径')
     args = parser.parse_args()
     
+    print("开始加载配置...")
     # 加载配置
     with open(args.config, 'r', encoding='utf-8') as f:
         config = yaml.safe_load(f)
@@ -126,10 +127,12 @@ def main():
     device = get_device()
     print(f"使用设备: {device}")
     
+    print("正在加载tokenizer...")
     # 创建tokenizer
     from transformers import AutoTokenizer
     tokenizer = AutoTokenizer.from_pretrained('roberta-base')
     
+    print("正在创建数据集...")
     # 创建数据集
     text_preprocessor = TextPreprocessor(max_length=config['max_text_length'])
     train_transform = get_image_transforms(config['image_size'], augment=config['augment'])
