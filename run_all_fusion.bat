@@ -11,48 +11,64 @@ echo.
 
 set PYTHON=C:\Users\Lenovo\AppData\Local\Programs\Python\Python312\python.exe
 
-echo [1/4] 训练 Early Fusion (预计2.5小时)...
-echo 开始时间: %time%
-%PYTHON% src\train_fusion.py --config configs\early_fusion.yaml
-if %errorlevel% neq 0 (
-    echo ❌ Early Fusion训练失败！
-    pause
-    exit /b 1
+echo [1/4] 训练 Early Fusion...
+if exist "checkpoints\early_fusion\best_model.pth" (
+    echo ⏭️  检测到已训练模型，跳过 Early Fusion
+) else (
+    echo 开始时间: %time%
+    %PYTHON% src\train_fusion.py --config configs\early_fusion.yaml
+    if %errorlevel% neq 0 (
+        echo ❌ Early Fusion训练失败！
+        pause
+        exit /b 1
+    )
+    echo ✅ Early Fusion完成
 )
-echo ✅ Early Fusion完成
 echo.
 
-echo [2/4] 训练 Late Fusion (预计10分钟)...
-echo 开始时间: %time%
-%PYTHON% src\train_fusion.py --config configs\late_fusion.yaml
-if %errorlevel% neq 0 (
-    echo ❌ Late Fusion训练失败！
-    pause
-    exit /b 1
+echo [2/4] 训练 Late Fusion...
+if exist "checkpoints\late_fusion\best_model.pth" (
+    echo ⏭️  检测到已训练模型，跳过 Late Fusion
+) else (
+    echo 开始时间: %time%
+    %PYTHON% src\train_fusion.py --config configs\late_fusion.yaml
+    if %errorlevel% neq 0 (
+        echo ❌ Late Fusion训练失败！
+        pause
+        exit /b 1
+    )
+    echo ✅ Late Fusion完成
 )
-echo ✅ Late Fusion完成
 echo.
 
-echo [3/4] 训练 CLIP Fusion (预计1小时)...
-echo 开始时间: %time%
-%PYTHON% src\train_fusion.py --config configs\clip_fusion.yaml
-if %errorlevel% neq 0 (
-    echo ❌ CLIP Fusion训练失败！
-    pause
-    exit /b 1
+echo [3/4] 训练 CLIP Fusion...
+if exist "checkpoints\clip_fusion\best_model.pth" (
+    echo ⏭️  检测到已训练模型，跳过 CLIP Fusion
+) else (
+    echo 开始时间: %time%
+    %PYTHON% src\train_fusion.py --config configs\clip_fusion.yaml
+    if %errorlevel% neq 0 (
+        echo ❌ CLIP Fusion训练失败！
+        pause
+        exit /b 1
+    )
+    echo ✅ CLIP Fusion完成
 )
-echo ✅ CLIP Fusion完成
 echo.
 
-echo [4/4] 训练 BLIP-2 Fusion (预计1.5小时)...
-echo 开始时间: %time%
-%PYTHON% src\train_fusion.py --config configs\blip2_fusion.yaml
-if %errorlevel% neq 0 (
-    echo ❌ BLIP-2 Fusion训练失败！
-    pause
-    exit /b 1
+echo [4/4] 训练 BLIP-2 Fusion...
+if exist "checkpoints\blip2_fusion\best_model.pth" (
+    echo ⏭️  检测到已训练模型，跳过 BLIP-2 Fusion
+) else (
+    echo 开始时间: %time%
+    %PYTHON% src\train_fusion.py --config configs\blip2_fusion.yaml
+    if %errorlevel% neq 0 (
+        echo ❌ BLIP-2 Fusion训练失败！
+        pause
+        exit /b 1
+    )
+    echo ✅ BLIP-2 Fusion完成
 )
-echo ✅ BLIP-2 Fusion完成
 echo.
 
 echo ========================================

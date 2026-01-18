@@ -44,13 +44,16 @@ class ImageEncoder(nn.Module):
         else:
             raise ValueError(f"Unsupported model: {model_name}")
         
+        # 投影层 (1792 → 512，统一多模态特征维度)
+        self.projection = nn.Linear(feature_dim, 512)
+        
         # 分类头
         self.classifier = nn.Sequential(
             nn.Dropout(dropout),
-            nn.Linear(feature_dim, feature_dim // 2),
+            nn.Linear(512, 256),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(feature_dim // 2, num_classes)
+            nn.Linear(256, num_classes)
         )
     
     def forward(self, images):
@@ -60,5 +63,9 @@ class ImageEncoder(nn.Module):
         # Returns:
         #   logits: 分类logits
         features = self.encoder(images)
-        logits = self.classifier(features)
+        
+        # 投影到512维
+        projected = self.projection(features)
+        
+        logits = self.classifier(projected)
         return logits

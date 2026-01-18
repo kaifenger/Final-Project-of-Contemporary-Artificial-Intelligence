@@ -1,5 +1,5 @@
 # 多模态融合模型训练脚本
-# 支持4种融合方法：Early Fusion, Late Fusion, CLIP-based, BLIP-2
+# 支持3种融合方法：Early Fusion, Late Fusion, Cross-Attention Fusion
 
 print("=" * 60)
 print("启动训练脚本...")
@@ -28,10 +28,48 @@ import numpy as np
 print("正在导入自定义模块...")
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from models.fusion_models import EarlyFusionModel, LateFusionModel, CLIPFusionModel, BLIP2FusionModel
+from models.fusion_models import EarlyFusionModel, LateFusionModel, CrossAttentionFusion
 from dataset import MultimodalDataset, TextPreprocessor, get_image_transforms
 from utils import set_seed, get_device, AverageMeter
 print("导入完成！")
+
+
+class EarlyStopping:
+    """Early Stopping工具"""
+    
+    def __init__(self, patience=5, min_delta=0.001, mode='max'):
+        self.patience = patience
+        self.min_delta = min_delta
+        self.mode = mode
+        self.counter = 0
+        self.best_score = None
+        self.early_stop = False
+        
+    def __call__(self, score):
+        if self.best_score is None:
+            self.best_score = score
+            return False
+        
+        if self.mode == 'max':
+            if score > self.best_score + self.min_delta:
+                self.best_score = score
+                self.counter = 0
+                return False
+            else:
+                self.counter += 1
+        else:
+            if score < self.best_score - self.min_delta:
+                self.best_score = score
+                self.counter = 0
+                return False
+            else:
+                self.counter += 1
+        
+        if self.counter >= self.patience:
+            self.early_stop = True
+            return True
+        
+        return False
 
 
 
@@ -41,7 +79,7 @@ def train_epoch(model, train_loader, criterion, optimizer, device, epoch, writer
     losses = AverageMeter()
     accuracies = AverageMeter()
     
-    pbar = tqdm(train_loader, desc=f'Epoch {epoch}')
+    pbar = tqdm(train_loader, desc=f'Epoch {epoch}', bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}, {rate_fmt}]')
     
     for batch_idx, batch in enumerate(pbar):
         # 从字典中提取数据
@@ -65,11 +103,12 @@ def train_epoch(model, train_loader, criterion, optimizer, device, epoch, writer
         
         # 计算准确率
         preds = torch.argmax(logits, dim=1)
-        acc = (preds == labels).float().mean().item()
+        correct = (preds == labels).sum().item()  # 正确样本数
+        batch_acc = correct / images.size(0)  # 当前batch准确率
         
         # 更新统计
         losses.update(loss.item(), images.size(0))
-        accuracies.update(acc, images.size(0))
+        accuracies.update(batch_acc, images.size(0))  # 传入准确率比例，进行加权平均
         
         # 更新进度条
         pbar.set_postfix({
@@ -79,12 +118,15 @@ def train_epoch(model, train_loader, criterion, optimizer, device, epoch, writer
         
         # TensorBoard记录
         global_step = epoch * len(train_loader) + batch_idx
-        writer.add_scalar('Train/Loss', loss.item(), global_step)
-        writer.add_scalar('Train/Acc', acc, global_step)
+        batch_acc = correct / images.size(0)
+        writer.add_scalar('Train/Loss', losses.avg, global_step)
+        writer.add_scalar('Train/Acc', batch_acc, global_step)
         
         # 释放中间变量内存
-        del text_input, images, labels, logits, loss
+        del text_input, images, labels, logits, loss, preds
         if batch_idx % 10 == 0:  # 每10个batch清理一次
+            import gc
+            gc.collect()
             torch.cuda.empty_cache() if torch.cuda.is_available() else None
     
     return losses.avg, accuracies.avg
@@ -100,7 +142,7 @@ def validate(model, val_loader, criterion, device, mode='both'):
     all_labels = []
     
     with torch.no_grad():
-        for batch in tqdm(val_loader, desc='Validating'):
+        for batch in tqdm(val_loader, desc='Validating', bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}, {rate_fmt}]'):
             # 从字典中提取数据
             text = batch['text']
             images = batch['image']
@@ -116,11 +158,12 @@ def validate(model, val_loader, criterion, device, mode='both'):
             
             # 计算准确率
             preds = torch.argmax(logits, dim=1)
-            acc = (preds == labels).float().mean().item()
+            correct = (preds == labels).sum().item()  # 正确样本数
+            batch_acc = correct / images.size(0)  # 当前batch准确率
             
             # 更新统计
             losses.update(loss.item(), images.size(0))
-            accuracies.update(acc, images.size(0))
+            accuracies.update(batch_acc, images.size(0))  # 传入准确率比例，进行加权平均
             
             # 收集预测结果
             all_preds.extend(preds.cpu().numpy())
@@ -207,29 +250,27 @@ def main():
             image_model=config['image_model'],
             num_classes=config['num_classes'],
             dropout=config['dropout'],
+            pretrained=config.get('pretrained', True),
             freeze_backbone=config.get('freeze_backbone', True)
         )
     elif fusion_type == 'late':
         model = LateFusionModel(
-            text_model_path=config['text_model_path'],
-            image_model_path=config['image_model_path'],
+            text_model=config['text_model'],
+            image_model=config['image_model'],
             num_classes=config['num_classes'],
-            learnable_weight=config.get('learnable_weight', True),
+            dropout=config.get('dropout', 0.1),
+            pretrained=config.get('pretrained', True),
             freeze_backbone=config.get('freeze_backbone', True)
         )
-    elif fusion_type == 'clip':
-        model = CLIPFusionModel(
-            model_name=config.get('clip_model', 'openai/clip-vit-base-patch32'),
+    elif fusion_type == 'cross_attention':
+        model = CrossAttentionFusion(
+            text_model=config['text_model'],
+            image_model=config['image_model'],
             num_classes=config['num_classes'],
-            freeze_clip=config.get('freeze_clip', True),
-            dropout=config['dropout']
-        )
-    elif fusion_type == 'blip2':
-        model = BLIP2FusionModel(
-            model_name=config.get('blip2_model', 'Salesforce/blip2-opt-2.7b'),
-            num_classes=config['num_classes'],
-            freeze_blip=config.get('freeze_blip', True),
-            dropout=config['dropout']
+            dropout=config['dropout'],
+            pretrained=config.get('pretrained', True),
+            freeze_backbone=config.get('freeze_backbone', True),
+            num_heads=config.get('num_heads', 8)
         )
     else:
         raise ValueError(f"Unknown fusion type: {fusion_type}")
@@ -244,13 +285,46 @@ def main():
     print(f"可训练参数量: {trainable_params:,} ({100*trainable_params/total_params:.1f}%)")
     print(f"冻结参数量: {frozen_params:,} ({100*frozen_params/total_params:.1f}%)")
     
-    # 损失函数和优化器
+    # 损失函数和优化器（分层学习率）
     criterion = nn.CrossEntropyLoss()
+    
+    # 参数分组：backbone用小学习率微调，projection和classifier用大学习率
+    backbone_params = []
+    projection_params = []
+    classifier_params = []
+    
+    # 收集各部分参数
+    if hasattr(model, 'text_encoder'):
+        backbone_params.extend(model.text_encoder.encoder.parameters())
+        projection_params.extend(model.text_encoder.projection.parameters())
+        if hasattr(model.text_encoder, 'classifier'):
+            classifier_params.extend(model.text_encoder.classifier.parameters())
+    
+    if hasattr(model, 'image_encoder'):
+        backbone_params.extend(model.image_encoder.encoder.parameters())
+        projection_params.extend(model.image_encoder.projection.parameters())
+        if hasattr(model.image_encoder, 'classifier'):
+            classifier_params.extend(model.image_encoder.classifier.parameters())
+    
+    # 收集融合层和其他参数
+    fusion_params = []
+    for name, param in model.named_parameters():
+        if 'encoder' not in name and 'projection' not in name and 'text_encoder.classifier' not in name and 'image_encoder.classifier' not in name:
+            fusion_params.append(param)
+    
+    # 创建参数组
+    param_groups = [
+        {'params': backbone_params, 'lr': config['backbone_lr']},
+        {'params': projection_params, 'lr': config['projection_lr']},
+        {'params': classifier_params + fusion_params, 'lr': config['classifier_lr']}
+    ]
+    
     optimizer = optim.AdamW(
-        model.parameters(),
-        lr=config['learning_rate'],
+        param_groups,
         weight_decay=config['weight_decay']
     )
+    
+    print(f"📊 学习率配置: backbone={config['backbone_lr']}, projection={config['projection_lr']}, classifier={config['classifier_lr']}")
     
     # 学习率调度器
     scheduler = optim.lr_scheduler.CosineAnnealingLR(
@@ -265,9 +339,29 @@ def main():
     # 创建checkpoint目录
     os.makedirs(config['checkpoint_dir'], exist_ok=True)
     
-    # 训练循环
-    best_val_acc = 0.0
+    # Early Stopping
+    early_stopping = None
+    if config.get('early_stopping', {}).get('enabled', False):
+        early_stopping = EarlyStopping(
+            patience=config['early_stopping']['patience'],
+            min_delta=config['early_stopping']['min_delta'],
+            mode='max'
+        )
+        print(f"📉 Early stopping enabled: patience={early_stopping.patience}")
+    
+    # Resume from checkpoint
     start_epoch = 0
+    best_val_acc = 0.0
+    if args.resume:
+        print(f"正在从checkpoint恢复: {args.resume}")
+        checkpoint = torch.load(args.resume, map_location=device)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        start_epoch = checkpoint['epoch'] + 1
+        best_val_acc = checkpoint.get('val_acc', 0.0)
+        print(f"✅ 从epoch {start_epoch}恢复训练，之前最佳准确率: {best_val_acc:.4f}")
+    
+    # 训练循环
     
     for epoch in range(start_epoch, config['epochs']):
         print(f"\nEpoch {epoch+1}/{config['epochs']}")
@@ -281,9 +375,18 @@ def main():
         print(f"训练 - Loss: {train_loss:.4f}, Acc: {train_acc:.4f}")
         
         # 验证
-        val_loss, val_acc, _, _ = validate(model, val_loader, criterion, device, mode='both')
+        val_loss, val_acc, all_preds, all_labels = validate(model, val_loader, criterion, device, mode='both')
         
-        print(f"验证 - Loss: {val_loss:.4f}, Acc: {val_acc:.4f}")
+        # 计算实际准确率（用于验证）
+        import numpy as np
+        actual_acc = np.mean(np.array(all_preds) == np.array(all_labels))
+        
+        # 打印预测分布，帮助诊断问题
+        from collections import Counter
+        pred_dist = Counter(all_preds)
+        label_dist = Counter(all_labels)
+        print(f"验证 - Loss: {val_loss:.4f}, Acc: {val_acc:.6f} (实际: {actual_acc:.6f})")
+        print(f"预测分布: {dict(pred_dist)}, 真实分布: {dict(label_dist)}")
         
         # 垃圾回收
         import gc
@@ -323,6 +426,13 @@ def main():
                 'val_acc': val_acc,
                 'config': config
             }, checkpoint_path)
+        
+        # Early Stopping检查
+        if early_stopping:
+            if early_stopping(val_acc):
+                print(f"\n🛑 Early stopping triggered at epoch {epoch+1}")
+                print(f"   Best val acc: {early_stopping.best_score:.4f}")
+                break
     
     writer.close()
     print(f"\n训练完成！最佳验证准确率: {best_val_acc:.4f}")

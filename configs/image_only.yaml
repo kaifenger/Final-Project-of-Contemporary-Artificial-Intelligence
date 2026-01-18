@@ -12,17 +12,25 @@ train_file: '../data_split/train_split.csv'
 val_file: '../data_split/val_split.csv'
 max_text_length: 128  # 占位，图像模型不使用
 image_size: 224
-augment: true  # 图像数据增强
+augment: false  # 控制变量：关闭数据增强
 
 # 训练配置
 batch_size: 32
-num_workers: 4
-epochs: 15
-learning_rate: 5.0e-5  # EfficientNet收敛更快,降低学习率以获得更好效果
+num_workers: 0
+epochs: 15  # 允许训练更多轮，依赖early stopping
+backbone_lr: 1.0e-5     # 微调backbone
+projection_lr: 1.0e-3   # 训练投影层
+classifier_lr: 1.0e-3   # 训练分类头
 weight_decay: 0.01
 seed: 42
 
+# Early Stopping配置
+early_stopping:
+  enabled: true
+  patience: 3  # 验证集3个epoch不提升则停止
+  min_delta: 0.001
+
 # 其他配置
-checkpoint_dir: '../checkpoints/image_only'
-log_dir: '../experiments/logs/image_only'
+checkpoint_dir: 'checkpoints/image_only'
+log_dir: 'experiments/logs/image_only'
 pretrained: true

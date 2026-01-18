@@ -104,6 +104,42 @@ for batch in loader:
 - **原因**: CPU训练时pin_memory无效且产生警告
 - **修复**: 根据设备类型动态设置`pin_memory = device.type == 'cuda'`
 
+### 7. 验证准确率计算错误（严重bug）
+**错误现象**:
+- 训练6个epoch后验证集准确率完全相同（都是0.603750）
+- 查看TensorBoard日志发现所有epoch的Val_Acc都一样
+- 明显不符合模型学习规律
+
+**错误代码**:
+```python
+# 错误：把准确率比例当作正确样本数累加
+acc = (preds == labels).float().mean().item()  # acc = 0.6（60%准确率）
+accuracies.update(acc, images.size(0))  # update(0.6, 64) - 错误的加权平均
+```
+
+**原因分析**:
+- `AverageMeter.update(val, n)` 的语义是：累加`val * n`，然后除以总样本数
+- 期望传入的是**正确样本数**（如38），而不是准确率比例（0.6）
+- 错误传入导致：`sum += 0.6 * 64 = 38.4`，而不是真实的正确样本数
+- 多个batch累加后误差累积，导致计算结果错误且固定
+
+**正确代码**:
+```python
+# 正确：统计正确样本的数量
+preds = torch.argmax(logits, dim=1)
+correct = (preds == labels).sum().item()  # correct = 38（正确样本数）
+accuracies.update(correct, images.size(0))  # update(38, 64) - 正确的累加
+```
+
+**影响范围**:
+- 影响所有训练和验证的准确率统计
+- Early Fusion和Late Fusion的已训练结果全部无效
+- 需要清除所有检查点重新训练
+
+**修复位置**:
+- `train_fusion.py` 第66-72行（训练epoch）
+- `train_fusion.py` 第117-123行（验证函数）
+
 ---
 
 ## 总结与经验

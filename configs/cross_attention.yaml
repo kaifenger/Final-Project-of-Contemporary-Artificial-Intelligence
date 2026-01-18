@@ -1,18 +1,21 @@
-# 纯文本模型配置
+# Cross-Attention Fusion配置文件
 
 # 模型配置
-model_type: 'text_only'
-text_model: 'roberta-base'  # RoBERTa性能优于BERT (可选: bert-base-uncased)
+fusion_type: 'cross_attention'
+text_model: 'roberta-base'
+image_model: 'efficientnet_b4'
 num_classes: 3
-dropout: 0.1
+dropout: 0.3
+num_heads: 8  # Multi-head attention heads
+freeze_backbone: true  # 冻结预训练backbone
 
 # 数据配置
-data_dir: '../data'
-train_file: '../data_split/train_split.csv'
-val_file: '../data_split/val_split.csv'
+data_dir: 'data'
+train_file: 'data_split/train_split.csv'
+val_file: 'data_split/val_split.csv'
 max_text_length: 128
 image_size: 224
-augment: false  # 文本模型不需要图像增强
+augment: false
 
 # 训练配置
 batch_size: 32
@@ -31,6 +34,6 @@ early_stopping:
   min_delta: 0.001
 
 # 其他配置
-checkpoint_dir: 'checkpoints/text_only'
-log_dir: 'experiments/logs/text_only'
+checkpoint_dir: 'checkpoints/cross_attention'
+log_dir: 'experiments/logs/cross_attention'
 pretrained: true

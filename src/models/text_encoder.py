@@ -29,13 +29,16 @@ class TextEncoder(nn.Module):
         
         hidden_size = self.encoder.config.hidden_size
         
+        # 投影层 (768 → 512，统一多模态特征维度)
+        self.projection = nn.Linear(hidden_size, 512)
+        
         # 分类头
         self.classifier = nn.Sequential(
             nn.Dropout(dropout),
-            nn.Linear(hidden_size, hidden_size // 2),
+            nn.Linear(512, 256),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(hidden_size // 2, num_classes)
+            nn.Linear(256, num_classes)
         )
     
     def forward(self, input_ids, attention_mask):
@@ -53,8 +56,11 @@ class TextEncoder(nn.Module):
         # 使用[CLS] token的输出
         pooled_output = outputs.pooler_output
         
+        # 投影到512维
+        projected = self.projection(pooled_output)
+        
         # 分类
-        logits = self.classifier(pooled_output)
+        logits = self.classifier(projected)
         
         return logits
     

@@ -2,11 +2,12 @@
 
 # 模型配置
 fusion_type: 'late'
-text_model_path: 'checkpoints/text_only/best_model.pth'  # 需要先训练v0.2
-image_model_path: 'checkpoints/image_only/best_model.pth'
+text_model: 'roberta-base'
+image_model: 'efficientnet_b4'
 num_classes: 3
-learnable_weight: true  # 可学习的融合权重
-freeze_backbone: true  # 冻结单模态模型
+dropout: 0.1
+freeze_backbone: true  # 冻结backbone
+pretrained: true
 
 # 数据配置
 data_dir: 'data'
@@ -19,11 +20,20 @@ augment: false  # 控制变量:关闭数据增强
 # 训练配置 (控制变量)
 batch_size: 32
 num_workers: 0  # 单进程模式,避免VPN冲突
-epochs: 15
-learning_rate: 5.0e-5  # 统一学习率
+epochs: 10  # v0.3初步训练10 epochs
+backbone_lr: 1.0e-5     # 微调backbone
+projection_lr: 1.0e-3   # 训练投影层
+classifier_lr: 1.0e-3   # 训练分类头
 weight_decay: 0.01
 seed: 42
+
+# Early Stopping配置
+early_stopping:
+  enabled: true
+  patience: 3  # 验证集3个epoch不提升则停止
+  min_delta: 0.001
 
 # 其他配置
 checkpoint_dir: 'checkpoints/late_fusion'
 log_dir: 'experiments/logs/late_fusion'
+
